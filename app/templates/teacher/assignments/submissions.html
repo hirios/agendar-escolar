@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Entregas — {{ assignment.title }}{% endblock %}
+{% block page_title %}Entregas da Atividade{% endblock %}
+
+{% block content %}
+<!-- Assignment header -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div>
+      <h2 class="text-xl font-bold text-slate-800">{{ assignment.title }}</h2>
+      <p class="text-slate-500 text-sm mt-0.5">
+        {{ assignment.class_subject.subject.name }} · {{ assignment.class_subject.class_.name }}
+      </p>
+      {% if assignment.due_date %}
+      <p class="text-sm text-slate-400 mt-1">
+        Prazo: {{ assignment.due_date | format_date('%d/%m/%Y %H:%M') }}
+        {% if assignment.is_overdue %}<span class="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Encerrado</span>{% endif %}
+      </p>
+      {% endif %}
+    </div>
+    <div class="flex-shrink-0 text-right">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Nota máxima</p>
+      <p class="text-2xl font-bold text-slate-800">{{ assignment.max_score | format_score }}</p>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="mt-5">
+    <div class="flex items-center justify-between text-sm mb-1.5">
+      <span class="text-slate-600 font-medium">{{ submitted_count }} de {{ total_count }} entregues</span>
+      <span class="text-slate-400">{{ ((submitted_count / total_count * 100) | round(0) | int) if total_count > 0 else 0 }}%</span>
+    </div>
+    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+      {% set pct = ((submitted_count / total_count * 100) | round(0) | int) if total_count > 0 else 0 %}
+      <div class="h-full bg-blue-500 rounded-full transition-all" style="width: {{ pct }}%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Submissions table -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide border-b border-slate-100">
+        <tr>
+          <th class="text-left px-6 py-3 font-medium">Aluno</th>
+          <th class="text-center px-4 py-3 font-medium">Status</th>
+          <th class="text-center px-4 py-3 font-medium">Entregue em</th>
+          <th class="text-center px-4 py-3 font-medium w-32">Nota</th>
+          <th class="text-left px-4 py-3 font-medium">Feedback</th>
+          <th class="text-center px-4 py-3 font-medium">Ação</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100" id="submissions-tbody">
+        {% for item in submissions_data %}
+        <tr data-student-id="{{ item.student.id }}" class="hover:bg-slate-50">
+          <td class="px-6 py-4 font-medium text-slate-800">{{ item.student.name }}</td>
+          <td class="px-4 py-4 text-center">
+            {% if item.display_status == 'graded' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Corrigido</span>
+            {% elif item.display_status == 'submitted' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Entregue</span>
+            {% elif item.display_status == 'late' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Atrasado</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Pendente</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-4 text-center text-slate-500">
+            {% if item.submission and item.submission.submitted_at %}
+            {{ item.submission.submitted_at | format_date('%d/%m/%Y %H:%M') }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-4 text-center">
+            <input type="number" min="0" max="{{ assignment.max_score }}" step="0.1"
+                   class="score-input w-24 px-2 py-1.5 border border-slate-300 rounded-lg text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   value="{{ item.submission.score | format_score if item.submission and item.submission.score is not none else '' }}"
+                   placeholder="0–{{ assignment.max_score | format_score }}" />
+          </td>
+          <td class="px-4 py-4">
+            <textarea class="feedback-input w-full px-2 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      rows="2" placeholder="Comentário opcional">{{ item.submission.feedback or '' if item.submission else '' }}</textarea>
+          </td>
+          <td class="px-4 py-4 text-center">
+            <button type="button"
+                    class="save-btn px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                    data-assignment-id="{{ assignment.id }}"
+                    data-student-id="{{ item.student.id }}">
+              Salvar
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="mt-4 flex justify-start">
+  <a href="{{ url_for('teacher.assignment_list') }}"
+     class="text-sm text-slate-500 hover:text-slate-700 transition-colors">
+    ← Voltar às atividades
+  </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+  document.querySelectorAll('.save-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const row = btn.closest('tr');
+      const studentId = parseInt(btn.dataset.studentId);
+      const assignmentId = parseInt(btn.dataset.assignmentId);
+      const scoreInput = row.querySelector('.score-input');
+      const feedbackInput = row.querySelector('.feedback-input');
+      const score = parseFloat(scoreInput.value);
+
+      if (isNaN(score)) {
+        alert('Por favor, informe uma nota válida.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
+
+      fetch('/teacher/assignments/' + assignmentId + '/grade', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+          student_id: studentId,
+          score: score,
+          feedback: feedbackInput.value,
+        }),
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.status === 'ok') {
+            btn.textContent = 'Salvo!';
+            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            btn.classList.add('bg-green-600');
+            // Update status badge
+            const statusCell = row.querySelector('td:nth-child(2)');
+            statusCell.innerHTML = '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Corrigido</span>';
+          } else {
+            alert('Erro ao salvar: ' + (data.error || 'desconhecido'));
+            btn.textContent = 'Salvar';
+          }
+          btn.disabled = false;
+        })
+        .catch(function (err) {
+          alert('Erro de rede. Tente novamente.');
+          btn.textContent = 'Salvar';
+          btn.disabled = false;
+        });
+    });
+  });
+});
+</script>
+{% endblock %}

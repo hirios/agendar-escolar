@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Novo Ano Letivo{% endblock %}
+{% block page_title %}Novo Ano Letivo{% endblock %}
+
+{% block content %}
+<div class="max-w-md">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Nome *</label>
+        <input type="text" name="name" required placeholder="ex: 2026"
+               class="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-5">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">Início *</label>
+          <input type="date" name="start_date" required
+                 class="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1.5">Fim *</label>
+          <input type="date" name="end_date" required
+                 class="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+      </div>
+      <div class="mb-6">
+        <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+          <input type="checkbox" name="activate" class="w-4 h-4 rounded border-slate-300 text-blue-600" />
+          Ativar este ano letivo agora
+        </label>
+        <p class="text-xs text-slate-400 mt-1 ml-6">Bimestres padrão (1º ao 4º) serão criados automaticamente.</p>
+      </div>
+      <div class="flex gap-3">
+        <button type="submit" class="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm rounded-lg transition-colors">Criar Ano Letivo</button>
+        <a href="{{ url_for('director.school_year_list') }}" class="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

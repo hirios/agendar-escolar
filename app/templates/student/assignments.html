@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Atividades{% endblock %}
+{% block page_title %}Minhas Atividades{% endblock %}
+
+{% block content %}
+<div class="space-y-3">
+  {% for a in assignments %}
+  {% set sub = submissions.get(a.id) %}
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5"
+       x-data="{ showFeedback: false }">
+    <div class="flex items-start gap-4">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+                  {{ 'bg-red-100 text-red-600' if a.is_overdue and not sub else 'bg-blue-100 text-blue-600' }}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-2 flex-wrap">
+          <div>
+            <h3 class="font-semibold text-slate-800">{{ a.title }}</h3>
+            <p class="text-sm text-slate-500 mt-0.5">{{ a.class_subject.subject.name }} · {{ a.class_subject.class_.name }}</p>
+          </div>
+
+          <!-- Status + Action -->
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{{ a.type_label }}</span>
+
+            {% if sub %}
+              {% if sub.status == 'graded' %}
+              <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                Avaliado: {{ sub.score | format_score }}
+              </span>
+              {% if sub.feedback %}
+              <button @click="showFeedback = !showFeedback"
+                      class="text-xs text-blue-600 hover:underline">Ver feedback</button>
+              {% endif %}
+              {% elif sub.status == 'late' %}
+              <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Atrasado</span>
+              {% else %}
+              <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Entregue</span>
+              {% endif %}
+            {% else %}
+              <form method="POST"
+                    action="{{ url_for('student.assignment_submit', assignment_id=a.id) }}"
+                    class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit"
+                        class="px-3 py-1 text-xs font-semibold rounded-lg transition-colors
+                               {{ 'bg-amber-500 hover:bg-amber-600 text-white' if a.is_overdue else 'bg-blue-600 hover:bg-blue-700 text-white' }}">
+                  {{ 'Entregar (atrasado)' if a.is_overdue else 'Entregar' }}
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if a.description %}
+        <p class="text-sm text-slate-600 mt-2">{{ a.description }}</p>
+        {% endif %}
+
+        <div class="flex flex-wrap gap-4 mt-2">
+          {% if a.due_date %}
+          <p class="text-xs {{ 'text-red-500 font-medium' if a.is_overdue and not sub else 'text-slate-400' }}">
+            Prazo: {{ a.due_date | format_date('%d/%m/%Y %H:%M') }}
+          </p>
+          {% endif %}
+          {% if a.max_score %}
+          <p class="text-xs text-slate-400">Valor: {{ a.max_score | format_score }}</p>
+          {% endif %}
+          {% if sub and sub.submitted_at %}
+          <p class="text-xs text-slate-400">Entregue em: {{ sub.submitted_at | format_date('%d/%m/%Y %H:%M') }}</p>
+          {% endif %}
+        </div>
+
+        <!-- Feedback expandable -->
+        {% if sub and sub.status == 'graded' and sub.feedback %}
+        <div x-show="showFeedback" x-cloak
+             class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+          <p class="text-xs font-semibold text-blue-700 mb-1">Feedback do professor</p>
+          <p class="text-sm text-slate-700">{{ sub.feedback }}</p>
+          {% if sub.score is not none %}
+          <p class="text-sm font-semibold mt-2
+                     {{ 'text-green-600' if sub.score >= 7 else 'text-yellow-600' if sub.score >= 5 else 'text-red-600' }}">
+            Nota: {{ sub.score | format_score }} / {{ a.max_score | format_score }}
+          </p>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 py-16 text-center text-slate-400 text-sm">
+    Nenhuma atividade.
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

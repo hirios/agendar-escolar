@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Calendário de Chamadas{% endblock %}
+{% block page_title %}Calendário — {{ cs.subject.name }} · {{ cs.class_.name }}{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div class="flex gap-2">
+    <a href="{{ url_for('teacher.attendance_history', cs_id=cs.id) }}"
+       class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+      Lista
+    </a>
+    <span class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">Calendário</span>
+  </div>
+  <a href="{{ url_for('teacher.attendance_take', cs_id=cs.id) }}"
+     class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+    Nova Chamada
+  </a>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+     x-data="attendanceCalendar()"
+     x-init="init()">
+
+  <!-- Month navigation -->
+  <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+    <a href="{{ url_for('teacher.attendance_calendar', cs_id=cs.id, month=prev_month, year=prev_year) }}"
+       class="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <h2 class="text-lg font-bold text-slate-800 capitalize">{{ month_name }} {{ year }}</h2>
+    <a href="{{ url_for('teacher.attendance_calendar', cs_id=cs.id, month=next_month, year=next_year) }}"
+       class="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-700 transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+
+  <!-- Weekday headers -->
+  <div class="grid grid-cols-7 border-b border-slate-100">
+    {% for day_name in ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'] %}
+    <div class="py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">{{ day_name }}</div>
+    {% endfor %}
+  </div>
+
+  <!-- Calendar grid -->
+  <div class="grid grid-cols-7">
+    {% for week in cal_grid %}
+      {% for day in week %}
+        {% if day == 0 %}
+        <div class="min-h-[80px] border-b border-r border-slate-100 bg-slate-50/50 p-2"></div>
+        {% else %}
+          {% set is_today = (day == today.day and month == today.month and year == today.year) %}
+          {% set data = calendar_data.get(day) %}
+          <div class="min-h-[80px] border-b border-r border-slate-100 p-2 transition-colors hover:bg-blue-50/50
+                       {{ 'bg-blue-50 ring-2 ring-inset ring-blue-400' if is_today else '' }}
+                       {{ 'cursor-pointer' if data else '' }}"
+               {% if data %}
+               @click="selectDay({{ day }})"
+               {% endif %}>
+            <div class="flex items-start justify-between mb-1">
+              <span class="text-sm font-medium {{ 'text-blue-700 font-bold' if is_today else 'text-slate-700' }}">{{ day }}</span>
+              {% if data %}
+                {% if data.absences == 0 %}
+                <span class="w-2.5 h-2.5 rounded-full bg-green-400 flex-shrink-0 mt-0.5"></span>
+                {% elif data.absences <= 2 %}
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0 mt-0.5"></span>
+                {% else %}
+                <span class="w-2.5 h-2.5 rounded-full bg-red-400 flex-shrink-0 mt-0.5"></span>
+                {% endif %}
+              {% endif %}
+            </div>
+            {% if data %}
+            <div class="mt-1">
+              <p class="text-xs text-slate-500">{{ data.total }} alunos</p>
+              {% if data.absences > 0 %}
+              <p class="text-xs text-red-500 font-medium">{{ data.absences }} falta{{ 's' if data.absences > 1 }}</p>
+              {% else %}
+              <p class="text-xs text-green-600 font-medium">Todos presentes</p>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <!-- Detail panel -->
+  <div x-show="selectedDay !== null" x-cloak
+       class="border-t border-slate-200 px-6 py-4 bg-slate-50">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-semibold text-slate-800">
+        Dia <span x-text="selectedDay"></span> — Alunos Ausentes
+      </h3>
+      <button @click="selectedDay = null; selectedData = null"
+              class="text-slate-400 hover:text-slate-600 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <template x-if="selectedData && selectedData.absences === 0">
+      <p class="text-sm text-green-600 font-medium">Nenhuma falta registrada neste dia.</p>
+    </template>
+    <template x-if="selectedData && selectedData.absences > 0">
+      <ul class="space-y-1">
+        <template x-for="name in selectedData.absent_students" :key="name">
+          <li class="flex items-center gap-2 text-sm text-slate-700">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0"></span>
+            <span x-text="name"></span>
+          </li>
+        </template>
+      </ul>
+    </template>
+  </div>
+
+  <!-- Legend -->
+  <div class="px-6 py-3 border-t border-slate-100 flex items-center gap-6 text-xs text-slate-500">
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-green-400"></span>Sem faltas</span>
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>1–2 faltas</span>
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-400"></span>Mais de 2 faltas</span>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function attendanceCalendar() {
+  const calendarData = {{ calendar_data | tojson }};
+  return {
+    selectedDay: null,
+    selectedData: null,
+    init() {},
+    selectDay(day) {
+      if (this.selectedDay === day) {
+        this.selectedDay = null;
+        this.selectedData = null;
+      } else {
+        this.selectedDay = day;
+        this.selectedData = calendarData[day] || null;
+      }
+    }
+  };
+}
+</script>
+{% endblock %}

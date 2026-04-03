@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Roster — {{ cs.subject.name }}{% endblock %}
+{% block page_title %}Situação da Turma{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-3 mb-1">
+        <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">
+          {{ cs.subject.code[:3] }}
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">{{ cs.subject.name }}</h2>
+          <p class="text-slate-500 text-sm">{{ cs.class_.name }}{% if cs.class_.grade_level %} · {{ cs.class_.grade_level }}{% endif %}</p>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <a href="{{ url_for('teacher.grades_overview', cs_id=cs.id) }}"
+         class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Lançar Notas
+      </a>
+      <a href="{{ url_for('teacher.class_detail', class_id=cs.class_id) }}"
+         class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+        Voltar
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Summary row -->
+<div class="grid grid-cols-3 gap-5 mb-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+      <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </div>
+    <div>
+      <div class="text-2xl font-bold text-slate-800">{{ students_data | length }}</div>
+      <div class="text-sm text-slate-500">Alunos matriculados</div>
+    </div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+      <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    </div>
+    <div>
+      <div class="text-2xl font-bold
+        {% if class_avg is not none %}
+          {% if class_avg >= 7 %}text-emerald-600{% elif class_avg >= min_grade %}text-amber-600{% else %}text-red-600{% endif %}
+        {% else %}text-slate-800{% endif %}">
+        {% if class_avg is not none %}{{ '%.1f'|format(class_avg) }}{% else %}—{% endif %}
+      </div>
+      <div class="text-sm text-slate-500">Média da turma</div>
+    </div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-{{ 'red' if at_risk_count > 0 else 'slate' }}-200 p-5 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-{{ 'red' if at_risk_count > 0 else 'slate' }}-50 flex items-center justify-center flex-shrink-0">
+      <svg class="w-6 h-6 text-{{ 'red' if at_risk_count > 0 else 'slate' }}-{{ '500' if at_risk_count > 0 else '400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <div>
+      <div class="text-2xl font-bold {{ 'text-red-600' if at_risk_count > 0 else 'text-slate-800' }}">{{ at_risk_count }}</div>
+      <div class="text-sm text-slate-500">Alunos em risco</div>
+    </div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-100">
+    <h3 class="font-semibold text-slate-800">Situação Individual dos Alunos</h3>
+  </div>
+  {% if students_data %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+        <tr>
+          <th class="text-left px-6 py-3 font-medium">Aluno</th>
+          <th class="text-center px-4 py-3 font-medium">Média</th>
+          <th class="text-center px-4 py-3 font-medium">Faltas (%)</th>
+          <th class="text-center px-4 py-3 font-medium">Situação</th>
+          <th class="text-center px-4 py-3 font-medium">Score de Risco</th>
+          <th class="px-4 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for item in students_data %}
+        <tr class="hover:bg-slate-50">
+          <!-- Aluno -->
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-xs flex-shrink-0">
+                {{ item.student.first_name[0] }}
+              </div>
+              <span class="font-medium text-slate-800">{{ item.student.name }}</span>
+            </div>
+          </td>
+          <!-- Média -->
+          <td class="px-4 py-4 text-center">
+            {% if item.avg_grade is not none %}
+            <span class="{{ item.avg_grade | grade_color }}">{{ '%.1f'|format(item.avg_grade) }}</span>
+            {% else %}
+            <span class="text-slate-300">—</span>
+            {% endif %}
+          </td>
+          <!-- Faltas -->
+          <td class="px-4 py-4 text-center">
+            <span class="{{ item.pct_absent | attendance_color }}">{{ item.pct_absent }}%</span>
+          </td>
+          <!-- Situação -->
+          <td class="px-4 py-4 text-center">
+            {% if item.status == 'aprovado' %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Aprovado</span>
+            {% elif item.status == 'em_risco' %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Em Risco</span>
+            {% elif item.status == 'reprovado' %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Reprovado</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Sem nota</span>
+            {% endif %}
+          </td>
+          <!-- Score de risco -->
+          <td class="px-4 py-4 text-center">
+            <div class="inline-flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm
+              {% if item.score >= 70 %}bg-red-100 text-red-700
+              {% elif item.score >= 40 %}bg-amber-100 text-amber-700
+              {% else %}bg-slate-100 text-slate-600{% endif %}">
+              {{ item.score }}
+            </div>
+          </td>
+          <!-- Ações -->
+          <td class="px-4 py-4 text-right">
+            <a href="{{ url_for('teacher.grades_overview', cs_id=cs.id) }}"
+               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+              Ver Notas
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="py-16 text-center text-slate-400 text-sm">
+    <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    Nenhum aluno matriculado nesta turma.
+  </div>
+  {% endif %}
+</div>
+<p class="text-xs text-slate-400 mt-3 px-1">Score de risco = nota (60%) + faltas (40%) · Situação baseada na média mínima de {{ min_grade }}</p>
+{% endblock %}

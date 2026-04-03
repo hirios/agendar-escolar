@@ -1,0 +1,28 @@
+/* Classe Alpine.js para elementos ocultos antes da inicialização */
+[x-cloak] { display: none !important; }
+
+/* Scrollbar customizada */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Transition suave para links */
+a { transition: color 0.15s, background-color 0.15s; }
+
+/* Foco visível acessível */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Tabelas responsivas */
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Animação de spinner */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* Grade de notas — células input sem borda de foco padrão do sistema */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { opacity: 0; }

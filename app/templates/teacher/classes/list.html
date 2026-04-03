@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Minhas Turmas{% endblock %}
+{% block page_title %}Minhas Turmas{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+  {% for class_ in classes %}
+  <a href="{{ url_for('teacher.class_detail', class_id=class_.id) }}"
+     class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:shadow-md hover:border-blue-200 transition-all group">
+    <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg mb-4">
+      {{ class_.name[:2] }}
+    </div>
+    <h3 class="font-bold text-slate-800 text-lg">{{ class_.name }}</h3>
+    <p class="text-slate-500 text-sm mt-1">{{ class_.grade_level or '' }} · {{ class_.shift_label }}</p>
+    <div class="mt-4 text-sm text-slate-400 flex items-center justify-between">
+      <span>{{ class_.active_students_count }} alunos</span>
+      <svg class="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </div>
+  </a>
+  {% else %}
+  <div class="col-span-3 py-16 text-center text-slate-400 text-sm">Nenhuma turma atribuída.</div>
+  {% endfor %}
+</div>
+{% endblock %}

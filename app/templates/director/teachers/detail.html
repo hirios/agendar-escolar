@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}{{ teacher.name }}{% endblock %}
+{% block page_title %}Detalhe do Professor{% endblock %}
+
+{% block content %}
+<!-- Header card -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+    <div class="w-16 h-16 rounded-2xl bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-2xl flex-shrink-0">
+      {{ teacher.first_name[0] }}
+    </div>
+    <div class="flex-1">
+      <h2 class="text-xl font-bold text-slate-800">{{ teacher.name }}</h2>
+      <p class="text-slate-500 text-sm mt-0.5">{{ teacher.email }}</p>
+      {% if teacher.profile and teacher.profile.phone %}
+      <p class="text-slate-400 text-sm mt-0.5">{{ teacher.profile.phone }}</p>
+      {% endif %}
+    </div>
+    <div class="flex items-center gap-3 flex-shrink-0">
+      <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium
+                   {{ 'bg-green-100 text-green-700' if teacher.is_active else 'bg-red-100 text-red-700' }}">
+        {{ 'Ativo' if teacher.is_active else 'Inativo' }}
+      </span>
+      <a href="{{ url_for('director.teacher_edit', teacher_id=teacher.id) }}"
+         class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+        Editar
+      </a>
+    </div>
+  </div>
+</div>
+
+{% if not school_year %}
+<div class="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 text-amber-700 text-sm mb-6">
+  Nenhum ano letivo ativo. <a href="{{ url_for('director.school_year_new') }}" class="underline font-medium">Criar ano letivo</a>.
+</div>
+{% else %}
+
+<!-- KPI row -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+      <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+    </div>
+    <div>
+      <div class="text-2xl font-bold text-slate-800">{{ class_subjects | length }}</div>
+      <div class="text-sm text-slate-500">Turmas / Disciplinas</div>
+    </div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+      <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    </div>
+    <div>
+      <div class="text-2xl font-bold text-slate-800">{{ sessions_count }}</div>
+      <div class="text-sm text-slate-500">Chamadas registradas</div>
+    </div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-{{ 'red' if at_risk | length > 0 else 'slate' }}-200 p-6 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-{{ 'red' if at_risk | length > 0 else 'slate' }}-50 flex items-center justify-center flex-shrink-0">
+      <svg class="w-6 h-6 text-{{ 'red' if at_risk | length > 0 else 'slate' }}-{{ '500' if at_risk | length > 0 else '400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <div>
+      <div class="text-2xl font-bold {{ 'text-red-600' if at_risk | length > 0 else 'text-slate-800' }}">{{ at_risk | length }}</div>
+      <div class="text-sm text-slate-500">Alunos em risco</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- Turmas e disciplinas -->
+  <div class="lg:col-span-2">
+    <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Turmas e Disciplinas — {{ school_year.name }}</h3>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      {% if class_subjects %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+            <tr>
+              <th class="text-left px-6 py-3 font-medium">Turma</th>
+              <th class="text-left px-6 py-3 font-medium">Disciplina</th>
+              <th class="text-center px-4 py-3 font-medium">Média</th>
+              <th class="text-center px-4 py-3 font-medium">Última chamada</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for cs in class_subjects %}
+            {% set avg = cs_stats.avg_per_cs.get(cs.id) %}
+            {% set last_att = cs_stats.last_att_per_cs.get(cs.id) %}
+            <tr class="hover:bg-slate-50">
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                  {{ cs.class_.name }}
+                </span>
+              </td>
+              <td class="px-6 py-4 font-medium text-slate-800">{{ cs.subject.name }}</td>
+              <td class="px-4 py-4 text-center">
+                {% if avg is not none %}
+                <span class="{{ avg | grade_color }}">{{ '%.1f'|format(avg) }}</span>
+                {% else %}
+                <span class="text-slate-300">—</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-4 text-center text-slate-500 text-xs">
+                {% if last_att %}{{ last_att.strftime('%d/%m/%Y') }}{% else %}<span class="text-slate-300">—</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="py-12 text-center text-slate-400 text-sm">Nenhuma turma/disciplina atribuída neste ano letivo.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Alunos em risco -->
+  <div>
+    <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Alunos em Risco</h3>
+    {% if at_risk %}
+    <div class="bg-white rounded-2xl shadow-sm border border-red-100 p-5">
+      <div class="space-y-2">
+        {% for item in at_risk %}
+        {% set student = item.student %}
+        <div class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50">
+          <!-- Score badge -->
+          <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0
+            {% if item.score >= 70 %}bg-red-100 text-red-700
+            {% elif item.score >= 40 %}bg-amber-100 text-amber-700
+            {% else %}bg-slate-200 text-slate-600{% endif %}">
+            {{ item.score }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-slate-800 truncate">{{ student.name }}</div>
+            <div class="text-xs text-slate-500 truncate">
+              {% if item.worst_subject and item.avg_grade is not none %}
+                {{ item.worst_subject }}: <span class="font-semibold text-red-500">{{ item.avg_grade }}</span>
+              {% elif item.pct_absent %}
+                {{ item.pct_absent }}% de faltas
+              {% endif %}
+            </div>
+          </div>
+          <a href="{{ url_for('director.student_detail', student_id=student.id) }}"
+             title="Ver detalhes do aluno"
+             class="text-slate-300 hover:text-blue-500 transition-colors flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="text-xs text-slate-400 mt-3 pl-1">Score = nota (60%) + faltas (40%)</p>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 py-12 text-center text-slate-400 text-sm">
+      <svg class="w-10 h-10 mx-auto mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Nenhum aluno em risco.
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Meu Painel{% endblock %}
+{% block page_title %}Meu Painel{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-800">Olá, {{ current_user.first_name }}!</h2>
+  <p class="text-slate-500 text-sm mt-1">{% if school_year %}{{ school_year.name }}{% endif %}</p>
+</div>
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="text-3xl font-bold text-blue-600 mb-1">{{ "%.1f"|format(gpa) if gpa is not none else '—' }}</div>
+    <div class="text-sm text-slate-500">Média Geral</div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    {% set total_aulas = attendance_summary | sum(attribute='total') %}
+    {% set total_faltas = attendance_summary | sum(attribute='absences') %}
+    {% set pct = ((total_faltas / total_aulas) * 100) | round(1) if total_aulas > 0 else 0 %}
+    <div class="text-3xl font-bold mb-1 {{ pct | attendance_color }}">{{ pct }}%</div>
+    <div class="text-sm text-slate-500">% de Faltas</div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="text-3xl font-bold text-slate-800 mb-1">{{ upcoming_assignments | length }}</div>
+    <div class="text-sm text-slate-500">Atividades Pendentes</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <!-- Desempenho por disciplina -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <h3 class="font-semibold text-slate-800 mb-4">Notas por Disciplina</h3>
+    {% if boletim %}
+    <div class="space-y-3">
+      {% for subject, data in boletim.items() %}
+      <div>
+        <div class="flex justify-between text-sm mb-1">
+          <span class="text-slate-700">{{ subject }}</span>
+          <span class="{{ data.media | grade_color if data.media is not none else 'text-slate-400' }}">
+            {{ "%.1f"|format(data.media) if data.media is not none else '—' }}
+          </span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2">
+          {% set pct = ((data.media / 10) * 100) | int if data.media is not none else 0 %}
+          <div class="h-2 rounded-full {{ 'bg-green-500' if data.media and data.media >= 7 else 'bg-yellow-400' if data.media and data.media >= 5 else 'bg-red-400' }}"
+               style="width: {{ pct }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-slate-400 text-sm">Nenhuma nota lançada ainda.</p>
+    {% endif %}
+    <a href="{{ url_for('student.grades') }}" class="mt-4 inline-block text-sm text-blue-600 hover:underline">Ver boletim completo →</a>
+  </div>
+
+  <!-- Próximas atividades -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <h3 class="font-semibold text-slate-800 mb-4">Próximas Atividades</h3>
+    {% if upcoming_assignments %}
+    <div class="space-y-3">
+      {% for a in upcoming_assignments %}
+      <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-50">
+        <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-slate-800 truncate">{{ a.title }}</div>
+          <div class="text-xs text-slate-500">{{ a.class_subject.subject.name }}</div>
+          {% if a.due_date %}
+          <div class="text-xs {{ 'text-red-500' if a.is_overdue else 'text-slate-400' }} mt-0.5">
+            Prazo: {{ a.due_date | format_date }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-slate-400 text-sm">Nenhuma atividade pendente.</p>
+    {% endif %}
+    <a href="{{ url_for('student.assignments') }}" class="mt-4 inline-block text-sm text-blue-600 hover:underline">Ver todas as atividades →</a>
+  </div>
+</div>
+{% endblock %}

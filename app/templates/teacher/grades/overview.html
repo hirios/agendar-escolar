@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Notas — {{ cs.subject.name }}{% endblock %}
+{% block page_title %}Notas — {{ cs.subject.name }} · {{ cs.class_.name }}{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" x-data="gradesGrid()">
+  <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+    <h3 class="font-semibold text-slate-800">Lançamento de Notas</h3>
+    <button @click="saveAll()" :disabled="saving"
+            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors">
+      <span x-show="!saving">Salvar Notas</span>
+      <span x-show="saving" x-cloak>Salvando…</span>
+    </button>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+        <tr>
+          <th class="text-left px-6 py-3 font-medium sticky left-0 bg-slate-50">Aluno</th>
+          {% for period in periods %}
+          <th class="text-center px-3 py-3 font-medium" colspan="2">{{ period.name }}</th>
+          {% endfor %}
+          <th class="text-center px-4 py-3 font-medium">Média</th>
+        </tr>
+        <tr class="border-t border-slate-200">
+          <th class="sticky left-0 bg-slate-50"></th>
+          {% for period in periods %}
+          <th class="text-center px-3 py-2 text-slate-400 font-normal">Prova</th>
+          <th class="text-center px-3 py-2 text-slate-400 font-normal">Trab.</th>
+          {% endfor %}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for student in students %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-6 py-3 sticky left-0 bg-white hover:bg-slate-50 font-medium text-slate-800 whitespace-nowrap">
+            {{ student.name }}
+          </td>
+          {% for period in periods %}
+          {% for gt in ['prova', 'trabalho'] %}
+          <td class="px-2 py-2 text-center">
+            <input
+              type="number"
+              min="0"
+              max="10"
+              step="0.1"
+              placeholder="—"
+              value="{{ grade_map.get(student.id, {}).get(period.id, {}).get(gt, '') }}"
+              @change="setGrade({{ student.id }}, {{ period.id }}, '{{ gt }}', $event.target.value)"
+              class="w-16 px-2 py-1.5 text-center border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            />
+          </td>
+          {% endfor %}
+          {% endfor %}
+          <td class="px-4 py-2 text-center">
+            <span x-text="getAverage({{ student.id }})" class="font-semibold text-sm"></span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td :colspan="{{ (periods | length) * 2 + 2 }}" class="px-6 py-8 text-center text-slate-400">Nenhum aluno.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div x-show="message" x-cloak class="px-6 py-4 border-t border-slate-100">
+    <span class="text-sm font-medium" :class="error ? 'text-red-600' : 'text-green-600'" x-text="message"></span>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function gradesGrid() {
+  const initialGrades = {{ grade_map | tojson }};
+  // Convert keys to numbers
+  const grades = {};
+  Object.entries(initialGrades).forEach(([sid, periods]) => {
+    grades[+sid] = {};
+    Object.entries(periods).forEach(([pid, types]) => {
+      grades[+sid][+pid] = { ...types };
+    });
+  });
+
+  return {
+    grades,
+    saving: false,
+    message: '',
+    error: false,
+    pending: [],
+
+    setGrade(studentId, periodId, gradeType, value) {
+      if (!this.grades[studentId]) this.grades[studentId] = {};
+      if (!this.grades[studentId][periodId]) this.grades[studentId][periodId] = {};
+      const score = value === '' ? null : parseFloat(value);
+      this.grades[studentId][periodId][gradeType] = score;
+
+      // Track for saving (score=null instrui o backend a apagar a nota)
+      const existing = this.pending.find(e => e.student_id === studentId && e.grade_period_id === periodId && e.grade_type === gradeType);
+      const entry = { student_id: studentId, class_subject_id: {{ cs.id }}, grade_period_id: periodId, grade_type: gradeType, score: score };
+      if (existing) Object.assign(existing, entry);
+      else this.pending.push(entry);
+    },
+
+    getAverage(studentId) {
+      const periods = this.grades[studentId];
+      if (!periods) return '—';
+      const scores = Object.values(periods).flatMap(types => Object.values(types)).filter(v => v !== null && v !== undefined && v !== '');
+      if (!scores.length) return '—';
+      const avg = scores.reduce((a, b) => a + +b, 0) / scores.length;
+      return avg.toFixed(1);
+    },
+
+    async saveAll() {
+      if (!this.pending.length) { this.message = 'Nenhuma alteração para salvar.'; this.error = false; return; }
+      this.saving = true;
+      try {
+        const res = await fetch('/api/v1/grades/bulk-save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+          body: JSON.stringify({ grades: this.pending })
+        });
+        const data = await res.json();
+        if (res.ok) { this.message = `${data.saved} nota(s) salva(s)!`; this.error = false; this.pending = []; }
+        else { this.message = data.error || 'Erro ao salvar.'; this.error = true; }
+      } catch { this.message = 'Erro de conexão.'; this.error = true; }
+      finally { this.saving = false; }
+    }
+  };
+}
+</script>
+{% endblock %}

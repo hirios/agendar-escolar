@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Minhas Notas{% endblock %}
+{% block page_title %}Boletim{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    {% if school_year %}<p class="text-sm text-slate-500">{{ school_year.name }}</p>{% endif %}
+    {% if gpa is not none %}
+    <p class="text-lg font-semibold mt-1">Média Geral: <span class="{{ gpa | grade_color }}">{{ "%.1f"|format(gpa) }}</span></p>
+    {% endif %}
+  </div>
+  <a href="{{ url_for('reports.boletim_pdf', student_id=current_user.id) }}"
+     class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    Baixar PDF
+  </a>
+</div>
+
+{% if boletim %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+        <tr>
+          <th class="text-left px-6 py-3 font-medium">Disciplina</th>
+          {% for period in periods %}
+          <th class="text-center px-4 py-3 font-medium">{{ period.name }}</th>
+          {% endfor %}
+          <th class="text-center px-4 py-3 font-medium">Média</th>
+          <th class="text-center px-4 py-3 font-medium">Situação</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for subject, data in boletim.items() %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-6 py-4 font-medium text-slate-800">{{ subject }}</td>
+          {% for period in periods %}
+          <td class="px-4 py-4 text-center">
+            {% set scores = data.get(period.name, {}).values() | list %}
+            {% if scores %}
+              {% set avg = (scores | sum) / (scores | length) %}
+              <span class="{{ avg | grade_color }}">{{ "%.1f"|format(avg) }}</span>
+            {% else %}
+              <span class="text-slate-300">—</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+          <td class="px-4 py-4 text-center">
+            {% if data.media is not none %}
+            <span class="{{ data.media | grade_color }}">{{ "%.1f"|format(data.media) }}</span>
+            {% else %}<span class="text-slate-300">—</span>{% endif %}
+          </td>
+          <td class="px-4 py-4 text-center">
+            {% if data.status == 'aprovado' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Aprovado</span>
+            {% elif data.status == 'reprovado' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Reprovado</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Em andamento</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 py-16 text-center text-slate-400 text-sm">Nenhuma nota lançada ainda.</div>
+{% endif %}
+
+<!-- Gráfico de Evolução por Bimestre -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 mt-6 overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-100">
+    <h2 class="font-semibold text-slate-800">Evolução por Bimestre</h2>
+    <p class="text-xs text-slate-500 mt-0.5">Média por disciplina ao longo do ano</p>
+  </div>
+  <div class="p-6">
+    <canvas id="chartEvolution" height="260"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  createEvolutionChart('chartEvolution', '/api/v1/students/{{ current_user.id }}/evolution');
+</script>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Comparativo de Turmas{% endblock %}
+{% block page_title %}Comparativo de Turmas — {{ school_year.name }}{% endblock %}
+
+{% block content %}
+<!-- KPI row -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+    <p class="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Total de Turmas</p>
+    <p class="text-3xl font-bold text-slate-800">{{ classes_data | length }}</p>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+    <p class="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Média Geral</p>
+    <p class="text-3xl font-bold {{ 'text-green-600' if overall_avg and overall_avg >= 7 else 'text-yellow-600' if overall_avg and overall_avg >= 5 else 'text-red-600' if overall_avg else 'text-slate-300' }}">
+      {{ "%.1f"|format(overall_avg) if overall_avg is not none else '—' }}
+    </p>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+    <p class="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">Alunos em Risco</p>
+    <p class="text-3xl font-bold {{ 'text-red-600' if total_at_risk > 0 else 'text-green-600' }}">{{ total_at_risk }}</p>
+    <p class="text-xs text-slate-400 mt-0.5">de {{ total_students }} alunos</p>
+  </div>
+</div>
+
+<!-- Table with Alpine.js sorting -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+     x-data="classReport()"
+     x-init="init()">
+  <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+    <h3 class="font-semibold text-slate-800">Turmas — {{ school_year.name }}</h3>
+    <a href="{{ url_for('director.report_classes') }}?export=csv"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+      Exportar CSV
+    </a>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide border-b border-slate-100">
+        <tr>
+          <th class="text-left px-6 py-3 font-medium cursor-pointer select-none hover:text-slate-700"
+              @click="sortBy('name')">
+            Turma <span x-text="sortKey==='name' ? (sortAsc?'↑':'↓') : ''"></span>
+          </th>
+          <th class="text-center px-4 py-3 font-medium cursor-pointer select-none hover:text-slate-700"
+              @click="sortBy('n_students')">
+            Alunos <span x-text="sortKey==='n_students' ? (sortAsc?'↑':'↓') : ''"></span>
+          </th>
+          <th class="text-center px-4 py-3 font-medium cursor-pointer select-none hover:text-slate-700"
+              @click="sortBy('avg_grade')">
+            Média <span x-text="sortKey==='avg_grade' ? (sortAsc?'↑':'↓') : ''"></span>
+          </th>
+          <th class="text-center px-4 py-3 font-medium cursor-pointer select-none hover:text-slate-700"
+              @click="sortBy('pct_present')">
+            Presença <span x-text="sortKey==='pct_present' ? (sortAsc?'↑':'↓') : ''"></span>
+          </th>
+          <th class="text-center px-4 py-3 font-medium cursor-pointer select-none hover:text-slate-700"
+              @click="sortBy('at_risk_count')">
+            Em Risco <span x-text="sortKey==='at_risk_count' ? (sortAsc?'↑':'↓') : ''"></span>
+          </th>
+          <th class="text-center px-4 py-3 font-medium">Disciplinas</th>
+          <th class="text-center px-4 py-3 font-medium">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        <template x-for="row in sorted" :key="row.id">
+          <tr class="hover:bg-slate-50">
+            <td class="px-6 py-4 font-semibold text-slate-800">
+              <span x-text="row.name"></span>
+              <span x-show="row.grade_level" x-text="row.grade_level" class="ml-1 text-xs text-slate-400 font-normal"></span>
+            </td>
+            <td class="px-4 py-4 text-center text-slate-600" x-text="row.n_students"></td>
+            <td class="px-4 py-4 text-center">
+              <span x-text="row.avg_grade !== null ? row.avg_grade.toFixed(1) : '—'"
+                    :class="row.avg_grade === null ? 'text-slate-300' : row.avg_grade >= 7 ? 'text-green-600 font-semibold' : row.avg_grade >= 5 ? 'text-yellow-600 font-semibold' : 'text-red-600 font-semibold'">
+              </span>
+            </td>
+            <td class="px-4 py-4 text-center">
+              <span x-text="row.pct_present !== null ? row.pct_present.toFixed(1) + '%' : '—'"
+                    :class="row.pct_present === null ? 'text-slate-300' : (100 - row.pct_present) >= 25 ? 'text-red-600 font-semibold' : (100 - row.pct_present) >= 18.75 ? 'text-yellow-600' : 'text-green-600'">
+              </span>
+            </td>
+            <td class="px-4 py-4 text-center">
+              <template x-if="row.at_risk_count > 0">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700"
+                      x-text="row.at_risk_count"></span>
+              </template>
+              <template x-if="row.at_risk_count === 0">
+                <span class="text-green-600 font-medium text-xs">0</span>
+              </template>
+            </td>
+            <td class="px-4 py-4 text-center text-slate-600" x-text="row.n_subjects"></td>
+            <td class="px-4 py-4 text-center">
+              <a :href="row.detail_url"
+                 class="px-3 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg transition-colors">
+                Ver turma
+              </a>
+            </td>
+          </tr>
+        </template>
+        <template x-if="sorted.length === 0">
+          <tr>
+            <td colspan="7" class="py-12 text-center text-slate-400 text-sm">Nenhuma turma encontrada.</td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function classReport() {
+  const rawData = [
+    {% for d in classes_data %}
+    {
+      id: {{ d.class_.id }},
+      name: {{ d.class_.name | tojson }},
+      grade_level: {{ (d.class_.grade_level or '') | tojson }},
+      n_students: {{ d.n_students }},
+      avg_grade: {{ d.avg_grade if d.avg_grade is not none else 'null' }},
+      pct_present: {{ d.pct_present if d.pct_present is not none else 'null' }},
+      at_risk_count: {{ d.at_risk_count }},
+      n_subjects: {{ d.n_subjects }},
+      detail_url: {{ url_for('director.class_detail', class_id=d.class_.id) | tojson }},
+    },
+    {% endfor %}
+  ];
+
+  return {
+    rows: rawData,
+    sortKey: 'name',
+    sortAsc: true,
+    get sorted() {
+      return [...this.rows].sort((a, b) => {
+        let va = a[this.sortKey];
+        let vb = b[this.sortKey];
+        if (va === null) va = this.sortAsc ? Infinity : -Infinity;
+        if (vb === null) vb = this.sortAsc ? Infinity : -Infinity;
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+        if (va < vb) return this.sortAsc ? -1 : 1;
+        if (va > vb) return this.sortAsc ? 1 : -1;
+        return 0;
+      });
+    },
+    sortBy(key) {
+      if (this.sortKey === key) {
+        this.sortAsc = !this.sortAsc;
+      } else {
+        this.sortKey = key;
+        this.sortAsc = true;
+      }
+    },
+    init() {},
+  };
+}
+</script>
+{% endblock %}
