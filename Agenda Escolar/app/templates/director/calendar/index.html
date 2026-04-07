@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Calendário Acadêmico{% endblock %}
+{% block page_title %}Calendário Acadêmico{% endblock %}
+
+{% block content %}
+<div class="flex justify-end mb-6">
+  <a href="{{ url_for('director.calendar_new') }}"
+     class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    Novo Evento
+  </a>
+</div>
+
+{% if not school_year %}
+<div class="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 text-amber-700 text-sm mb-6">
+  Nenhum ano letivo ativo. <a href="{{ url_for('director.school_year_new') }}" class="underline font-medium">Criar ano letivo</a>.
+</div>
+{% endif %}
+
+{% if events %}
+<div class="space-y-3">
+  {% for event in events %}
+  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-start gap-4">
+    <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
+                {% if event.type == 'holiday' %}bg-red-100 text-red-600
+                {% elif event.type == 'exam' %}bg-purple-100 text-purple-600
+                {% elif event.type == 'meeting' %}bg-blue-100 text-blue-600
+                {% elif event.type == 'deadline' %}bg-orange-100 text-orange-600
+                {% else %}bg-green-100 text-green-600{% endif %}">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    </div>
+    <div class="flex-1">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <h3 class="font-semibold text-slate-800">{{ event.title }}</h3>
+          <p class="text-sm text-slate-500 mt-0.5">
+            {{ event.event_date | format_date }}
+            {% if event.end_date and event.end_date != event.event_date %} — {{ event.end_date | format_date }}{% endif %}
+          </p>
+        </div>
+        <span class="text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0
+                     {% if event.type == 'holiday' %}bg-red-100 text-red-700
+                     {% elif event.type == 'exam' %}bg-purple-100 text-purple-700
+                     {% elif event.type == 'meeting' %}bg-blue-100 text-blue-700
+                     {% elif event.type == 'deadline' %}bg-orange-100 text-orange-700
+                     {% else %}bg-green-100 text-green-700{% endif %}">
+          {{ event.type_label }}
+        </span>
+      </div>
+      {% if event.description %}<p class="text-sm text-slate-600 mt-2">{{ event.description }}</p>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 py-16 text-center text-slate-400">
+  <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+  <p class="text-sm">Nenhum evento no calendário.</p>
+</div>
+{% endif %}
+{% endblock %}

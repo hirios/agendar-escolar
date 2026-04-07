@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Professores{% endblock %}
+{% block page_title %}Professores{% endblock %}
+
+{% block content %}
+<div class="flex justify-end gap-3 mb-6">
+  {% if show_inactive %}
+  <a href="{{ url_for('director.teacher_list') }}"
+     class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+    Ocultar inativos
+  </a>
+  {% else %}
+  <a href="{{ url_for('director.teacher_list', inactive=1) }}"
+     class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 text-sm font-medium rounded-lg transition-colors">
+    Mostrar inativos
+  </a>
+  {% endif %}
+  <a href="{{ url_for('director.teacher_new') }}"
+     class="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    Novo Professor
+  </a>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+        <tr>
+          <th class="text-left px-6 py-3 font-medium">Nome</th>
+          <th class="text-left px-6 py-3 font-medium">Email</th>
+          <th class="text-left px-6 py-3 font-medium">Status</th>
+          <th class="px-6 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for teacher in teachers %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-semibold text-sm">
+                {{ teacher.first_name[0] }}
+              </div>
+              <span class="font-medium text-slate-800">{{ teacher.name }}</span>
+            </div>
+          </td>
+          <td class="px-6 py-4 text-slate-600">{{ teacher.email }}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                         {{ 'bg-green-100 text-green-700' if teacher.is_active else 'bg-red-100 text-red-700' }}">
+              {{ 'Ativo' if teacher.is_active else 'Inativo' }}
+            </span>
+          </td>
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-2 justify-end">
+              <a href="{{ url_for('director.teacher_detail', teacher_id=teacher.id) }}"
+                 class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex" title="Ver detalhes">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              </a>
+              <a href="{{ url_for('director.teacher_edit', teacher_id=teacher.id) }}"
+                 class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors inline-flex" title="Editar">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </a>
+              {% if teacher.is_active %}
+              <form method="POST" action="{{ url_for('director.teacher_deactivate', teacher_id=teacher.id) }}"
+                    onsubmit="return confirm('Desativar {{ teacher.first_name }}? O professor não poderá mais fazer login.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Desativar">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                </button>
+              </form>
+              {% else %}
+              <form method="POST" action="{{ url_for('director.teacher_reactivate', teacher_id=teacher.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Reativar">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="px-6 py-12 text-center text-slate-400">Nenhum professor cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Frequência de {{ student.name }}{% endblock %}
+{% block page_title %}Frequência — {{ student.first_name }}{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-4 mb-6">
+  <a href="{{ url_for('parent.dashboard') }}" class="text-slate-400 hover:text-slate-600">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+  </a>
+  <h2 class="font-bold text-slate-800">{{ student.name }}</h2>
+</div>
+
+{% if summary %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+        <tr>
+          <th class="text-left px-6 py-3 font-medium">Disciplina</th>
+          <th class="text-center px-4 py-3 font-medium">Aulas</th>
+          <th class="text-center px-4 py-3 font-medium">Presenças</th>
+          <th class="text-center px-4 py-3 font-medium">Faltas</th>
+          <th class="text-center px-4 py-3 font-medium">% Faltas</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for item in summary %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-6 py-4 font-medium text-slate-800">{{ item.subject_name }}</td>
+          <td class="px-4 py-4 text-center text-slate-600">{{ item.total }}</td>
+          <td class="px-4 py-4 text-center text-green-600 font-medium">{{ item.presences }}</td>
+          <td class="px-4 py-4 text-center text-red-500">{{ item.absences }}</td>
+          <td class="px-4 py-4 text-center"><span class="{{ item.percent_absent | attendance_color }}">{{ item.percent_absent }}%</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 py-12 text-center text-slate-400 text-sm">Nenhum registro de frequência.</div>
+{% endif %}
+{% endblock %}

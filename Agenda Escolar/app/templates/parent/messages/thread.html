@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ root_message.subject or 'Mensagem' }}{% endblock %}
+{% block page_title %}Conversa{% endblock %}
+
+{% block content %}
+<div class="mb-4 flex items-center gap-3">
+  <a href="{{ url_for('parent.messages') }}"
+     class="text-sm text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Voltar
+  </a>
+  <span class="text-slate-300">/</span>
+  <h2 class="text-sm font-semibold text-slate-700">{{ root_message.subject or 'Sem assunto' }}</h2>
+</div>
+
+<!-- Thread messages -->
+<div class="space-y-4 mb-6 max-w-3xl">
+  {% for msg in thread %}
+  {% set is_mine = msg.sender_id == current_user.id %}
+  <div class="flex {{ 'justify-end' if is_mine else 'justify-start' }}">
+    <div class="max-w-lg {{ 'ml-12' if is_mine else 'mr-12' }}">
+      <!-- Sender name & time -->
+      <div class="flex items-baseline gap-2 mb-1 {{ 'flex-row-reverse' if is_mine else '' }}">
+        <span class="text-xs font-semibold {{ 'text-blue-700' if is_mine else 'text-slate-600' }}">
+          {{ msg.sender.name }}
+        </span>
+        <span class="text-xs text-slate-400">{{ msg.sent_at | format_date('%d/%m/%Y %H:%M') }}</span>
+      </div>
+
+      <!-- Bubble -->
+      <div class="px-4 py-3 rounded-2xl text-sm leading-relaxed
+                  {{ 'bg-blue-600 text-white rounded-tr-sm' if is_mine else 'bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm' }}">
+        {{ msg.body }}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Reply form -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 max-w-3xl">
+  <h3 class="font-semibold text-slate-800 mb-4 text-sm">Responder</h3>
+  <form method="POST" action="{{ url_for('parent.message_reply', message_id=root_message.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <textarea name="body" rows="4" required
+              placeholder="Digite sua resposta…"
+              class="w-full px-4 py-3 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-3"></textarea>
+    <div class="flex justify-end">
+      <button type="submit"
+              class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+        Enviar Resposta
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

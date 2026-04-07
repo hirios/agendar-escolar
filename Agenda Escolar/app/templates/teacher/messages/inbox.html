@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Mensagens{% endblock %}
+{% block page_title %}Caixa de Entrada{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+    <h3 class="font-semibold text-slate-800">Mensagens recebidas</h3>
+    {% set unread_count = inbox | selectattr('is_read', 'equalto', false) | list | length %}
+    {% if unread_count > 0 %}
+    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+      {{ unread_count }} não lida{{ 's' if unread_count != 1 else '' }}
+    </span>
+    {% endif %}
+  </div>
+
+  {% if inbox %}
+  <div class="divide-y divide-slate-100" x-data="{ open: null }">
+    {% for msg in inbox %}
+    <div class="{{ 'bg-blue-50' if not msg.is_read else 'bg-white' }} hover:bg-slate-50 transition-colors">
+      <!-- Message header row (clickable) -->
+      <button type="button"
+              @click="open = open === {{ msg.id }} ? null : {{ msg.id }}"
+              class="w-full text-left px-6 py-4">
+        <div class="flex items-start gap-4">
+          <!-- Unread indicator -->
+          <div class="flex-shrink-0 mt-1">
+            {% if not msg.is_read %}
+            <span class="block w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+            {% else %}
+            <span class="block w-2.5 h-2.5 rounded-full bg-transparent"></span>
+            {% endif %}
+          </div>
+          <!-- Sender avatar -->
+          <div class="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-semibold text-sm flex-shrink-0">
+            {{ msg.sender.first_name[0] }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="font-{{ 'bold' if not msg.is_read else 'medium' }} text-slate-800 text-sm truncate">
+                {{ msg.sender.name }}
+              </span>
+              <span class="text-xs text-slate-400 flex-shrink-0">{{ msg.sent_at | format_date }}</span>
+            </div>
+            {% if msg.subject %}
+            <div class="text-sm font-{{ 'semibold' if not msg.is_read else 'normal' }} text-slate-700 mt-0.5 truncate">
+              {{ msg.subject }}
+            </div>
+            {% endif %}
+            <div class="text-xs text-slate-500 mt-0.5 truncate" x-show="open !== {{ msg.id }}">
+              {{ msg.body[:100] }}{% if msg.body | length > 100 %}…{% endif %}
+            </div>
+          </div>
+          <!-- Chevron -->
+          <div class="flex-shrink-0 text-slate-400 mt-1">
+            <svg class="w-4 h-4 transition-transform" :class="open === {{ msg.id }} ? 'rotate-90' : ''"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>
+        </div>
+      </button>
+
+      <!-- Expanded body + reply form -->
+      <div x-show="open === {{ msg.id }}" x-cloak class="px-6 pb-6 pt-0 ml-16">
+        <div class="bg-slate-50 rounded-xl p-4 mb-4 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{{ msg.body }}</div>
+
+        <!-- Reply form -->
+        <form method="POST" action="{{ url_for('teacher.messages_reply', message_id=msg.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="mb-3">
+            <label class="block text-xs font-medium text-slate-600 mb-1.5">Responder a {{ msg.sender.first_name }}</label>
+            <textarea name="body" rows="3" required placeholder="Digite sua resposta..."
+                      class="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+          </div>
+          <div class="flex gap-2">
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+              Enviar resposta
+            </button>
+            <button type="button" @click="open = null"
+                    class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+              Fechar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="py-16 text-center text-slate-400">
+    <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+    </svg>
+    <p class="text-sm">Nenhuma mensagem recebida.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Fazer Chamada{% endblock %}
+{% block page_title %}Fazer Chamada — {{ cs.subject.name }} · {{ cs.class_.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl" x-data="attendanceForm()">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+    <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Data da aula</label>
+        <input type="date" x-model="date" :max="today"
+               class="px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">Nº da aula</label>
+        <select x-model="lessonNumber" class="px-4 py-2.5 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="1">1ª aula</option>
+          <option value="2">2ª aula</option>
+          <option value="3">3ª aula</option>
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" @click="setAll('present')" class="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">Todos Presentes</button>
+        <button type="button" @click="setAll('absent')" class="px-4 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded-lg transition-colors">Todos Ausentes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-slate-100">
+      <h3 class="font-semibold text-slate-800">{{ students | length }} alunos</h3>
+    </div>
+    <ul class="divide-y divide-slate-100">
+      {% for student in students %}
+      <li class="flex items-center gap-4 px-6 py-4" x-data>
+        <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-sm flex-shrink-0">
+          {{ student.first_name[0] }}
+        </div>
+        <span class="flex-1 text-sm font-medium text-slate-800">{{ student.name }}</span>
+        <div class="flex gap-2">
+          {% for status, label, color in [('present','Presente','green'), ('absent','Falta','red'), ('justified','Just.','yellow')] %}
+          <button type="button"
+                  @click="$dispatch('set-status', { id: {{ student.id }}, status: '{{ status }}' })"
+                  x-on:set-status.window="if($event.detail.id === {{ student.id }}) updateStatus({{ student.id }}, $event.detail.status)"
+                  :class="getStatusClass({{ student.id }}, '{{ status }}')"
+                  class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all border">
+            {{ label }}
+          </button>
+          {% endfor %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="flex gap-3">
+    <button type="button" @click="save()" :disabled="saving"
+            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold text-sm rounded-lg transition-colors">
+      <span x-show="!saving">Salvar Chamada</span>
+      <span x-show="saving" x-cloak>Salvando…</span>
+    </button>
+    <a href="{{ url_for('teacher.attendance_history', cs_id=cs.id) }}"
+       class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+      Ver Histórico
+    </a>
+  </div>
+
+  <!-- Mensagem de feedback -->
+  <div x-show="message" x-cloak class="mt-4 px-4 py-3 rounded-lg text-sm font-medium"
+       :class="error ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'"
+       x-text="message"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function attendanceForm() {
+  const students = {{ students | map(attribute='id') | list | tojson }};
+  const statuses = {};
+  students.forEach(id => statuses[id] = 'present');
+
+  return {
+    date: '{{ today }}',
+    lessonNumber: '1',
+    statuses,
+    saving: false,
+    message: '',
+    error: false,
+
+    updateStatus(id, status) { this.statuses[id] = status; },
+    setAll(status) { students.forEach(id => this.statuses[id] = status); },
+
+    getStatusClass(id, status) {
+      const current = this.statuses[id];
+      const base = 'border ';
+      if (current !== status) return base + 'border-slate-200 text-slate-400 hover:border-slate-300';
+      const map = { present: 'bg-green-500 border-green-500 text-white', absent: 'bg-red-500 border-red-500 text-white', justified: 'bg-yellow-400 border-yellow-400 text-white' };
+      return base + (map[status] || '');
+    },
+
+    async save() {
+      this.saving = true;
+      this.message = '';
+      const records = students.map(id => ({ student_id: id, status: this.statuses[id] }));
+      try {
+        const res = await fetch('/api/v1/attendance/bulk-save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+          body: JSON.stringify({
+            class_id: {{ cs.class_id }},
+            class_subject_id: {{ cs.id }},
+            date: this.date,
+            lesson_number: parseInt(this.lessonNumber),
+            records
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          this.message = 'Chamada salva com sucesso!';
+          this.error = false;
+        } else {
+          this.message = data.error || 'Erro ao salvar.';
+          this.error = true;
+        }
+      } catch (e) {
+        this.message = 'Erro de conexão.';
+        this.error = true;
+      } finally {
+        this.saving = false;
+      }
+    }
+  };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Painel do Responsável{% endblock %}
+{% block page_title %}Meu Painel{% endblock %}
+
+{% block content %}
+{% if children_data %}
+<div class="space-y-6">
+  {% for item in children_data %}
+  {% set student = item.student %}
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="flex items-center gap-4 mb-5">
+      <div class="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl">
+        {{ student.first_name[0] }}
+      </div>
+      <div>
+        <h3 class="font-bold text-slate-800 text-lg">{{ student.name }}</h3>
+        <p class="text-slate-500 text-sm">{{ student.email }}</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+      <div class="rounded-xl bg-slate-50 p-4 text-center">
+        <div class="text-2xl font-bold {{ item.gpa | grade_color if item.gpa is not none else 'text-slate-400' }}">
+          {{ "%.1f"|format(item.gpa) if item.gpa is not none else '—' }}
+        </div>
+        <div class="text-xs text-slate-500 mt-1">Média Geral</div>
+      </div>
+      {% set total_aulas = item.attendance | sum(attribute='total') %}
+      {% set total_faltas = item.attendance | sum(attribute='absences') %}
+      {% set pct = ((total_faltas / total_aulas) * 100) | round(1) if total_aulas > 0 else 0 %}
+      <div class="rounded-xl bg-slate-50 p-4 text-center">
+        <div class="text-2xl font-bold {{ pct | attendance_color }}">{{ pct }}%</div>
+        <div class="text-xs text-slate-500 mt-1">% de Faltas</div>
+      </div>
+      <div class="col-span-2 sm:col-span-1 flex gap-2">
+        <a href="{{ url_for('parent.child_grades', student_id=student.id) }}"
+           class="flex-1 flex items-center justify-center py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors">Notas</a>
+        <a href="{{ url_for('parent.child_attendance', student_id=student.id) }}"
+           class="flex-1 flex items-center justify-center py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">Frequência</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 py-16 text-center text-slate-400 text-sm">
+  Nenhum aluno vinculado a este perfil.
+</div>
+{% endif %}
+{% endblock %}

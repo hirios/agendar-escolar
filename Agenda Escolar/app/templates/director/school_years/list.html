@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Anos Letivos{% endblock %}
+{% block page_title %}Anos Letivos{% endblock %}
+
+{% block content %}
+<div class="flex justify-end mb-6">
+  <a href="{{ url_for('director.school_year_new') }}"
+     class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    Novo Ano Letivo
+  </a>
+</div>
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+        <tr>
+          <th class="text-left px-6 py-3 font-medium">Nome</th>
+          <th class="text-left px-6 py-3 font-medium">Início</th>
+          <th class="text-left px-6 py-3 font-medium">Fim</th>
+          <th class="text-left px-6 py-3 font-medium">Status</th>
+          <th class="px-6 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for sy in years %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-6 py-4 font-semibold text-slate-800">{{ sy.name }}</td>
+          <td class="px-6 py-4 text-slate-600">{{ sy.start_date | format_date }}</td>
+          <td class="px-6 py-4 text-slate-600">{{ sy.end_date | format_date }}</td>
+          <td class="px-6 py-4">
+            {% if sy.is_active %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Ativo
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Inativo</span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 text-right">
+            {% if not sy.is_active %}
+            <form method="POST" action="{{ url_for('director.school_year_activate', year_id=sy.id) }}" class="inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="text-sm text-amber-600 hover:underline font-medium">Ativar</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="px-6 py-12 text-center text-slate-400">Nenhum ano letivo criado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

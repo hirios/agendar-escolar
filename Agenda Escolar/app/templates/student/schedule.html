@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Horários{% endblock %}
+{% block page_title %}Meus Horários{% endblock %}
+
+{% block content %}
+{% if schedules %}
+{% set days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'] %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+        <tr>
+          <th class="text-left px-4 py-3 font-medium">Horário</th>
+          {% for day in days %}
+          <th class="text-center px-4 py-3 font-medium">{{ day }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% set by_day = {} %}
+        {% for s in schedules %}
+          {% if s.day_of_week not in by_day %}{% set _ = by_day.update({s.day_of_week: []}) %}{% endif %}
+          {% set _ = by_day[s.day_of_week].append(s) %}
+        {% endfor %}
+        {% for s in schedules | sort(attribute='start_time') | unique(attribute='start_time') %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-4 py-3 text-slate-500 whitespace-nowrap">
+            {{ s.start_time.strftime('%H:%M') }} – {{ s.end_time.strftime('%H:%M') }}
+          </td>
+          {% for di in range(5) %}
+          <td class="px-3 py-2 text-center">
+            {% for sched in schedules %}
+            {% if sched.day_of_week == di and sched.start_time == s.start_time %}
+            <div class="rounded-lg bg-blue-50 text-blue-700 text-xs font-medium px-2 py-1.5">
+              {{ sched.class_subject.subject.code }}
+            </div>
+            {% endif %}
+            {% endfor %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 py-16 text-center text-slate-400 text-sm">
+  Nenhum horário configurado.
+</div>
+{% endif %}
+{% endblock %}

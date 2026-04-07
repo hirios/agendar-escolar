@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Turma {{ class_.name }}{% endblock %}
+{% block page_title %}Turma {{ class_.name }}{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+  <h2 class="text-xl font-bold text-slate-800">{{ class_.name }}</h2>
+  <p class="text-slate-500 text-sm mt-1">{{ class_.grade_level }} · {{ class_.shift_label }}</p>
+</div>
+
+<!-- Disciplinas do professor nesta turma -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+  {% for cs in subject_class_subjects %}
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm">{{ cs.subject.code[:3] }}</div>
+      <div>
+        <div class="font-semibold text-slate-800">{{ cs.subject.name }}</div>
+      </div>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <a href="{{ url_for('teacher.attendance_take', cs_id=cs.id) }}"
+         class="flex-1 text-center py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
+        Fazer Chamada
+      </a>
+      <a href="{{ url_for('teacher.attendance_history', cs_id=cs.id) }}"
+         class="flex-1 text-center py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors">
+        Histórico
+      </a>
+      <a href="{{ url_for('teacher.grades_overview', cs_id=cs.id) }}"
+         class="flex-1 text-center py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors">
+        Notas
+      </a>
+      <a href="{{ url_for('teacher.class_roster', cs_id=cs.id) }}"
+         class="flex-1 text-center py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-lg transition-colors">
+        Ver Situação
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Lista de alunos -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="px-6 py-4 border-b border-slate-100">
+    <h3 class="font-semibold text-slate-800">Alunos ({{ students | length }})</h3>
+  </div>
+  <ul class="divide-y divide-slate-100">
+    {% for student in students %}
+    <li class="flex items-center gap-3 px-6 py-3 hover:bg-slate-50">
+      <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-xs">{{ student.first_name[0] }}</div>
+      <span class="text-sm font-medium text-slate-800">{{ student.name }}</span>
+    </li>
+    {% else %}
+    <li class="px-6 py-8 text-center text-slate-400 text-sm">Nenhum aluno matriculado.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

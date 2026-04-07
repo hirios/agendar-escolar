@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Dashboard do Professor{% endblock %}
+{% block page_title %}Meu Painel{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h2 class="text-2xl font-bold text-slate-800">Olá, {{ current_user.first_name }}!</h2>
+  <p class="text-slate-500 text-sm mt-1">
+    {% if school_year %}Ano letivo: <strong>{{ school_year.name }}</strong> · Hoje: {{ today.strftime('%d/%m/%Y') }}{% else %}Nenhum ano letivo ativo.{% endif %}
+  </p>
+</div>
+
+{% if school_year %}
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex items-center gap-5">
+    <div class="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+      <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </div>
+    <div>
+      <div class="text-3xl font-bold text-slate-800">{{ stats.students }}</div>
+      <div class="text-sm text-slate-500 mt-0.5">Alunos</div>
+    </div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex items-center gap-5">
+    <div class="w-14 h-14 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+      <svg class="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    </div>
+    <div>
+      <div class="text-3xl font-bold text-slate-800">{{ stats.upcoming_assignments }}</div>
+      <div class="text-sm text-slate-500 mt-0.5">Atividades nos próx. 7 dias</div>
+    </div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex items-center gap-5">
+    <div class="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center
+      {% if stats.at_risk > 0 %}bg-red-50{% else %}bg-slate-50{% endif %}">
+      <svg class="w-7 h-7 {% if stats.at_risk > 0 %}text-red-500{% else %}text-slate-400{% endif %}"
+           fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="text-3xl font-bold {% if stats.at_risk > 0 %}text-red-600{% else %}text-slate-800{% endif %}">{{ stats.at_risk }}</div>
+      <div class="text-sm text-slate-500 mt-0.5">Alunos em risco</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- Turmas/Disciplinas -->
+  <div class="lg:col-span-2">
+    <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Minhas Turmas</h3>
+    {% if class_subjects %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {% for cs in class_subjects %}
+      {% set n_alunos = cs_stats.students_per_class.get(cs.class_id, 0) %}
+      {% set avg = cs_stats.avg_per_cs.get(cs.id) %}
+      {% set last_att = cs_stats.last_att_per_cs.get(cs.id) %}
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
+            {{ cs.subject.code[:3] }}
+          </div>
+          <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">{{ cs.class_.name }}</span>
+        </div>
+        <h3 class="font-semibold text-slate-800">{{ cs.subject.name }}</h3>
+        <p class="text-sm text-slate-500 mt-0.5">{{ cs.class_.grade_level or '' }}</p>
+
+        <!-- Métricas da turma -->
+        <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div class="bg-slate-50 rounded-lg py-2">
+            <div class="text-base font-bold text-slate-800">{{ n_alunos }}</div>
+            <div class="text-xs text-slate-400">Alunos</div>
+          </div>
+          <div class="bg-slate-50 rounded-lg py-2">
+            <div class="text-base font-bold {% if avg is not none %}{% if avg >= 7 %}text-emerald-600{% elif avg >= 5 %}text-amber-500{% else %}text-red-500{% endif %}{% else %}text-slate-400{% endif %}">
+              {{ '%.1f'|format(avg) if avg is not none else '—' }}
+            </div>
+            <div class="text-xs text-slate-400">Média</div>
+          </div>
+          <div class="bg-slate-50 rounded-lg py-2">
+            <div class="text-xs font-semibold text-slate-700 leading-tight mt-1">
+              {% if last_att %}{{ last_att.strftime('%d/%m') }}{% else %}—{% endif %}
+            </div>
+            <div class="text-xs text-slate-400">Última chamada</div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+          <a href="{{ url_for('teacher.attendance_take', cs_id=cs.id) }}"
+             class="flex-1 text-center py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition-colors">
+            Chamada
+          </a>
+          <a href="{{ url_for('teacher.grades_overview', cs_id=cs.id) }}"
+             class="flex-1 text-center py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg transition-colors">
+            Notas
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 py-16 text-center text-slate-400">
+      <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      <p class="text-sm">Nenhuma turma/disciplina atribuída ainda.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Coluna lateral -->
+  <div class="space-y-6">
+
+    <!-- Atividades próximas -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-slate-800">Atividades Próximas</h3>
+        <span class="text-xs text-slate-400">14 dias</span>
+      </div>
+      {% if upcoming_assignments %}
+      <div class="space-y-3">
+        {% for assignment in upcoming_assignments %}
+        {% set days_left = (assignment.due_date.date() - today).days if assignment.due_date else None %}
+        <div class="flex items-start gap-3">
+          <div class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0
+            {% if days_left is not none and days_left <= 2 %}bg-red-400
+            {% elif days_left is not none and days_left <= 5 %}bg-amber-400
+            {% else %}bg-blue-400{% endif %}">
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-slate-800 truncate">{{ assignment.title }}</div>
+            <div class="text-xs text-slate-500">
+              {{ assignment.class_subject.class_.name }} · {{ assignment.class_subject.subject.name }}
+            </div>
+            <div class="text-xs mt-0.5
+              {% if days_left is not none and days_left <= 2 %}text-red-500 font-semibold
+              {% elif days_left is not none and days_left <= 5 %}text-amber-500
+              {% else %}text-slate-400{% endif %}">
+              {% if days_left == 0 %}Vence hoje
+              {% elif days_left == 1 %}Vence amanhã
+              {% elif days_left is not none %}{{ days_left }} dias
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-6 text-slate-400">
+        <svg class="w-8 h-8 mx-auto mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <p class="text-xs">Nenhuma atividade próxima</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Alunos em risco -->
+    {% if at_risk %}
+    <div class="bg-white rounded-2xl shadow-sm border border-red-100 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-slate-800">Alunos em Risco</h3>
+        <span class="text-xs bg-red-100 text-red-700 font-medium px-2.5 py-1 rounded-full">{{ at_risk|length }}</span>
+      </div>
+      <div class="space-y-2">
+        {% for item in at_risk %}
+        {% set student = item.student %}
+        <div class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50">
+          <!-- Score -->
+          <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0
+            {% if item.score >= 70 %}bg-red-100 text-red-700
+            {% elif item.score >= 40 %}bg-amber-100 text-amber-700
+            {% else %}bg-slate-200 text-slate-600{% endif %}">
+            {{ item.score }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-slate-800 truncate">{{ student.name }}</div>
+            <div class="text-xs text-slate-500 truncate">
+              {% if item.worst_subject and item.avg_grade is not none %}
+                {{ item.worst_subject }}: <span class="font-semibold text-red-500">{{ item.avg_grade }}</span>
+              {% elif item.pct_absent %}
+                {{ item.pct_absent }}% de faltas
+              {% endif %}
+            </div>
+          </div>
+          <!-- Ir para lançamento de notas da disciplina em risco -->
+          {% if item.worst_cs_id %}
+          <a href="{{ url_for('teacher.grades_overview', cs_id=item.worst_cs_id) }}"
+             title="Ver notas em {{ item.worst_subject }}"
+             class="text-slate-300 hover:text-blue-500 transition-colors flex-shrink-0">
+          {% else %}
+          <span class="text-slate-300 flex-shrink-0">
+          {% endif %}
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          {% if item.worst_cs_id %}</a>{% else %}</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <p class="text-xs text-slate-400 mt-3 pl-1">Score = nota (60%) + faltas (40%)</p>
+    </div>
+    {% endif %}
+
+    <!-- Ações rápidas -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+      <h3 class="font-semibold text-slate-800 mb-3">Ações Rápidas</h3>
+      <div class="space-y-2">
+        <a href="{{ url_for('teacher.class_list') }}"
+           class="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors">
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          Ver minhas turmas
+        </a>
+        <a href="{{ url_for('teacher.assignment_list') }}"
+           class="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors">
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          Gerenciar atividades
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

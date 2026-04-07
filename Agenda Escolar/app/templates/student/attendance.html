@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Frequência{% endblock %}
+{% block page_title %}Minha Frequência{% endblock %}
+
+{% block content %}
+{% if summary %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-slate-50 text-slate-500 uppercase text-xs tracking-wide">
+        <tr>
+          <th class="text-left px-6 py-3 font-medium">Disciplina</th>
+          <th class="text-center px-4 py-3 font-medium">Aulas</th>
+          <th class="text-center px-4 py-3 font-medium">Presenças</th>
+          <th class="text-center px-4 py-3 font-medium">Faltas</th>
+          <th class="text-center px-4 py-3 font-medium">% Faltas</th>
+          <th class="text-center px-4 py-3 font-medium">Status</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for item in summary %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-6 py-4 font-medium text-slate-800">{{ item.subject_name }}</td>
+          <td class="px-4 py-4 text-center text-slate-600">{{ item.total }}</td>
+          <td class="px-4 py-4 text-center text-green-600 font-medium">{{ item.presences }}</td>
+          <td class="px-4 py-4 text-center text-red-500">{{ item.absences }}</td>
+          <td class="px-4 py-4 text-center">
+            <span class="{{ item.percent_absent | attendance_color }}">{{ item.percent_absent }}%</span>
+          </td>
+          <td class="px-4 py-4 text-center">
+            {% if item.percent_absent >= 25 %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Em risco</span>
+            {% elif item.percent_absent >= 15 %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Atenção</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Regular</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 py-16 text-center text-slate-400 text-sm">
+  Nenhum registro de frequência ainda.
+</div>
+{% endif %}
+{% endblock %}

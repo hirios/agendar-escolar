@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Boletim — {{ student.name }}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #1e293b; background: #fff; }
+    .page { max-width: 800px; margin: 0 auto; padding: 32px; }
+    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1e40af; padding-bottom: 16px; margin-bottom: 20px; }
+    .school-name { font-size: 20px; font-weight: 700; color: #1e40af; }
+    .school-sub { font-size: 11px; color: #64748b; }
+    .student-info { background: #f8fafc; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .info-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+    .info-value { font-size: 13px; font-weight: 600; color: #1e293b; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th { background: #1e40af; color: white; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; text-align: center; }
+    th:first-child { text-align: left; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; font-size: 12px; text-align: center; }
+    td:first-child { text-align: left; font-weight: 500; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .grade-green { color: #16a34a; font-weight: 700; }
+    .grade-yellow { color: #d97706; font-weight: 700; }
+    .grade-red { color: #dc2626; font-weight: 700; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+    .badge-green { background: #dcfce7; color: #16a34a; }
+    .badge-red { background: #fee2e2; color: #dc2626; }
+    .badge-gray { background: #f1f5f9; color: #64748b; }
+    .gpa-box { background: #1e40af; color: white; border-radius: 10px; padding: 16px 24px; display: inline-block; margin-bottom: 20px; }
+    .gpa-label { font-size: 11px; opacity: 0.8; }
+    .gpa-value { font-size: 28px; font-weight: 700; }
+    .footer { margin-top: 40px; display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+    .sign-line { border-top: 1px solid #94a3b8; width: 180px; text-align: center; padding-top: 4px; }
+    @media print { body { print-color-adjust: exact; } .page { padding: 20px; } }
+  </style>
+</head>
+<body>
+<div class="page">
+  <!-- Cabeçalho -->
+  <div class="header">
+    <div>
+      <div class="school-name">Agenda Escolar</div>
+      <div class="school-sub">Sistema de Controle Escolar</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:14px; font-weight:700; color:#1e40af">BOLETIM ESCOLAR</div>
+      {% if school_year %}<div class="school-sub">{{ school_year.name }}</div>{% endif %}
+    </div>
+  </div>
+
+  <!-- Dados do aluno -->
+  <div class="student-info">
+    <div>
+      <div class="info-label">Nome do Aluno</div>
+      <div class="info-value">{{ student.name }}</div>
+    </div>
+    <div>
+      <div class="info-label">Email</div>
+      <div class="info-value" style="font-size:11px;">{{ student.email }}</div>
+    </div>
+    <div>
+      <div class="info-label">Data de Emissão</div>
+      <div class="info-value">{% set now = [] %}{{ now | format_date if now else '' }}</div>
+    </div>
+  </div>
+
+  {% if gpa is not none %}
+  <div class="gpa-box">
+    <div class="gpa-label">Média Geral</div>
+    <div class="gpa-value">{{ "%.1f"|format(gpa) }}</div>
+  </div>
+  {% endif %}
+
+  <!-- Tabela de notas -->
+  {% if boletim %}
+  <table>
+    <thead>
+      <tr>
+        <th>Disciplina</th>
+        {% for period in periods %}<th>{{ period.name }}</th>{% endfor %}
+        <th>Média</th>
+        <th>Situação</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for subject, data in boletim.items() %}
+      <tr>
+        <td>{{ subject }}</td>
+        {% for period in periods %}
+        <td>
+          {% set scores = data.get(period.name, {}).values() | list %}
+          {% if scores %}
+            {% set avg = (scores|sum)/(scores|length) %}
+            <span class="{{ 'grade-green' if avg >= 7 else 'grade-yellow' if avg >= 5 else 'grade-red' }}">{{ "%.1f"|format(avg) }}</span>
+          {% else %}—{% endif %}
+        </td>
+        {% endfor %}
+        <td>
+          {% if data.media is not none %}
+          <strong class="{{ 'grade-green' if data.media >= 7 else 'grade-yellow' if data.media >= 5 else 'grade-red' }}">{{ "%.1f"|format(data.media) }}</strong>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if data.status == 'aprovado' %}<span class="badge badge-green">Aprovado</span>
+          {% elif data.status == 'reprovado' %}<span class="badge badge-red">Reprovado</span>
+          {% else %}<span class="badge badge-gray">Em andamento</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- Frequência -->
+  {% if attendance %}
+  <div style="margin-top:24px; margin-bottom:8px; font-weight:700; font-size:13px; color:#1e40af;">Frequência</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Disciplina</th>
+        <th>Total Aulas</th>
+        <th>Presenças</th>
+        <th>Faltas</th>
+        <th>% Faltas</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in attendance %}
+      <tr>
+        <td>{{ item.subject_name }}</td>
+        <td>{{ item.total }}</td>
+        <td style="color:#16a34a; font-weight:600;">{{ item.presences }}</td>
+        <td style="color:#dc2626;">{{ item.absences }}</td>
+        <td><span class="{{ 'grade-red' if item.percent_absent >= 25 else 'grade-yellow' if item.percent_absent >= 15 else 'grade-green' }}">{{ item.percent_absent }}%</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- Assinaturas -->
+  <div class="footer">
+    <div class="sign-line">Direção</div>
+    <div class="sign-line">Professor(a)</div>
+    <div class="sign-line">Responsável</div>
+  </div>
+</div>
+{% if preview %}
+<div style="position:fixed; top:16px; right:16px;">
+  <a href="{{ url_for('reports.boletim_pdf', student_id=student.id) }}"
+     style="background:#1e40af; color:white; padding:10px 18px; border-radius:8px; text-decoration:none; font-size:13px; font-weight:600;">
+    Baixar PDF
+  </a>
+</div>
+{% endif %}
+</body>
+</html>

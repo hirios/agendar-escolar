@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Dashboard da Direção{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-5 mb-8">
+  {% set kpis = [
+    ('Alunos', stats.students, '#2563eb', 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'),
+    ('Professores', stats.teachers, '#7c3aed', 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'),
+    ('Turmas', stats.classes, '#0891b2', 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'),
+  ] %}
+  {% for label, value, color, icon in kpis %}
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex items-center gap-5">
+    <div class="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style="background:{{ color }}1a">
+      <svg class="w-7 h-7" style="color:{{ color }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon }}"/>
+      </svg>
+    </div>
+    <div>
+      <div class="text-3xl font-bold text-slate-800">{{ value }}</div>
+      <div class="text-sm text-slate-500 mt-0.5">{{ label }}</div>
+    </div>
+  </div>
+  {% endfor %}
+  <!-- Média geral -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex items-center gap-5 sm:col-span-3 lg:col-span-1">
+    <div class="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#0596681a">
+      <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    </div>
+    <div>
+      <div class="text-3xl font-bold {% if overall_avg %}{% if overall_avg >= 7 %}text-emerald-600{% elif overall_avg >= 5 %}text-amber-500{% else %}text-red-500{% endif %}{% else %}text-slate-400{% endif %}">
+        {{ '%.1f'|format(overall_avg) if overall_avg else '—' }}
+      </div>
+      <div class="text-sm text-slate-500 mt-0.5">Média geral do ano</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <!-- Gráfico de desempenho -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="font-semibold text-slate-800">Desempenho por Turma</h2>
+      <a href="{{ url_for('director.class_list') }}" class="text-sm text-blue-600 hover:underline">Ver turmas</a>
+    </div>
+    <canvas id="chartPerformance" height="220"></canvas>
+  </div>
+
+  <!-- Alunos em risco -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="font-semibold text-slate-800">Alunos em Risco</h2>
+      <span class="text-xs bg-red-100 text-red-700 font-medium px-2.5 py-1 rounded-full">{{ at_risk|length }} aluno(s)</span>
+    </div>
+    {% if at_risk %}
+    <div class="space-y-2">
+      {% for item in at_risk %}
+      {% set student = item.student %}
+      <a href="{{ url_for('director.student_detail', student_id=student.id) }}"
+         class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+        <!-- Score badge -->
+        <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0
+          {% if item.score >= 70 %}bg-red-100 text-red-700
+          {% elif item.score >= 40 %}bg-amber-100 text-amber-700
+          {% else %}bg-slate-100 text-slate-600{% endif %}">
+          {{ item.score }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-slate-800 truncate">{{ student.name }}</div>
+          <div class="text-xs text-slate-500 truncate">{{ item.reasons | join(' · ') if item.reasons else student.email }}</div>
+        </div>
+        <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </a>
+      {% endfor %}
+    </div>
+    <p class="text-xs text-slate-400 mt-3 pl-1">Score 0–100 (nota + faltas)</p>
+    {% else %}
+    <div class="text-center py-8 text-slate-400">
+      <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <p class="text-sm">Nenhum aluno em risco</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Insights -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="font-semibold text-slate-800">Insights</h2>
+      {% if insights %}
+      <span class="text-xs bg-amber-100 text-amber-700 font-medium px-2.5 py-1 rounded-full">{{ insights|length }} alerta(s)</span>
+      {% endif %}
+    </div>
+    {% if insights %}
+    <div class="space-y-3">
+      {% for ins in insights %}
+      <div class="flex items-start gap-3 p-3 rounded-xl
+        {% if ins.severity == 'high' %}bg-red-50 border border-red-100{% else %}bg-amber-50 border border-amber-100{% endif %}">
+        <svg class="w-5 h-5 flex-shrink-0 mt-0.5 {% if ins.severity == 'high' %}text-red-500{% else %}text-amber-500{% endif %}"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div class="min-w-0">
+          <div class="text-sm font-medium {% if ins.severity == 'high' %}text-red-800{% else %}text-amber-800{% endif %} truncate">
+            {{ ins.title }}
+          </div>
+          <div class="text-xs {% if ins.severity == 'high' %}text-red-600{% else %}text-amber-600{% endif %} mt-0.5">
+            {{ ins.detail }}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8 text-slate-400">
+      <svg class="w-12 h-12 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <p class="text-sm">Nenhum alerta no momento</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Eventos próximos -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="font-semibold text-slate-800">Próximos Eventos</h2>
+      <a href="{{ url_for('director.calendar') }}" class="text-sm text-blue-600 hover:underline">Ver calendário</a>
+    </div>
+    {% if upcoming_events %}
+    <div class="space-y-3">
+      {% set type_colors = {'holiday': 'bg-blue-100 text-blue-700', 'exam': 'bg-red-100 text-red-700', 'meeting': 'bg-violet-100 text-violet-700', 'deadline': 'bg-amber-100 text-amber-700', 'event': 'bg-emerald-100 text-emerald-700'} %}
+      {% set type_labels = {'holiday': 'Feriado', 'exam': 'Prova', 'meeting': 'Reunião', 'deadline': 'Prazo', 'event': 'Evento'} %}
+      {% for ev in upcoming_events %}
+      <div class="flex items-center gap-3">
+        <div class="text-center w-10 flex-shrink-0">
+          <div class="text-lg font-bold text-slate-800 leading-none">{{ ev.event_date.strftime('%d') }}</div>
+          <div class="text-xs text-slate-400 uppercase">{{ ev.event_date.strftime('%b') }}</div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-slate-800 truncate">{{ ev.title }}</div>
+          <span class="inline-block text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 {{ type_colors.get(ev.type, 'bg-slate-100 text-slate-600') }}">
+            {{ type_labels.get(ev.type, ev.type) }}
+          </span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8 text-slate-400">
+      <svg class="w-10 h-10 mx-auto mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <p class="text-sm">Nenhum evento nos próximos 30 dias</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Ações rápidas -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:col-span-2">
+    <h2 class="font-semibold text-slate-800 mb-4">Ações Rápidas</h2>
+    <div class="flex flex-wrap gap-3">
+      <a href="{{ url_for('director.student_new') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Novo Aluno
+      </a>
+      <a href="{{ url_for('director.teacher_new') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Novo Professor
+      </a>
+      <a href="{{ url_for('director.class_new') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Nova Turma
+      </a>
+      <a href="{{ url_for('director.subject_new') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Nova Disciplina
+      </a>
+      <a href="{{ url_for('director.school_year_new') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Novo Ano Letivo
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  createBarChart('chartPerformance', '/api/v1/subjects/averages', 'subject', 'avg', 'Média');
+});
+</script>
+{% endblock %}

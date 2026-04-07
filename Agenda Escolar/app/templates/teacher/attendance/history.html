@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Histórico de Chamadas{% endblock %}
+{% block page_title %}Histórico — {{ cs.subject.name }} · {{ cs.class_.name }}{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div class="flex gap-2">
+    <span class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">Lista</span>
+    <a href="{{ url_for('teacher.attendance_calendar', cs_id=cs.id) }}"
+       class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
+      Calendário
+    </a>
+  </div>
+  <a href="{{ url_for('teacher.attendance_take', cs_id=cs.id) }}"
+     class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
+    Nova Chamada
+  </a>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  {% if sessions %}
+  <div class="divide-y divide-slate-100">
+    {% for session in sessions %}
+    <div class="px-6 py-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="font-semibold text-slate-800">{{ session.date | format_date }}</span>
+          <span class="ml-2 text-sm text-slate-400">Aula {{ session.lesson_number }}</span>
+        </div>
+        <div class="flex gap-3 text-sm">
+          {% set presences = session.records | selectattr('status', 'eq', 'present') | list | length %}
+          {% set total = session.records | length %}
+          <span class="text-green-600 font-medium">{{ presences }} presentes</span>
+          <span class="text-red-500">{{ total - presences }} faltas</span>
+        </div>
+      </div>
+      {% if session.notes %}<p class="text-sm text-slate-500 mt-1">{{ session.notes }}</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="py-16 text-center text-slate-400 text-sm">Nenhuma chamada realizada ainda.</div>
+  {% endif %}
+</div>
+{% endblock %}
